@@ -43,7 +43,25 @@ const CFG = {
   // ID, менеджер, контрагент, флоу, проект, логин, пароль, ссылка, баланс, дата, статус, рейтинг, заметка, 3 money, статус money, updated
   COL_WIDTHS: [90, 125, 190, 130, 160, 190, 115, 170, 120, 145, 150, 175, 270, 165, 180, 180, 210, 180],
 
-  TS_MUTE_SECONDS: 120
+  TS_MUTE_SECONDS: 120,
+
+  DENSE_MODE: false
+};
+
+const THEME = {
+  headerBg: "#1f2937",
+  headerFg: "#ffffff",
+  titleBg: "#f3f4f6",
+  titleFg: "#6b7280",
+  zebraBg: "#fbfdff",
+  blockHeadBg: "#eef2f7",
+  blockOldFlowBg: "#f1f5f9",
+  blockNewFlowBg: "#ecfeff",
+  blockBorder: "#94a3b8",
+  regularRowHeight: 30,
+  blockHeadRowHeight: 40,
+  regularRowHeightDense: 28,
+  blockHeadRowHeightDense: 38
 };
 
 const LAYOUTS = {
@@ -79,6 +97,24 @@ function idx0_(name) {
   return i;
 }
 function idx1_(name) { return idx0_(name) + 1; }
+
+
+function regularRowHeight_() { return CFG.DENSE_MODE ? THEME.regularRowHeightDense : THEME.regularRowHeight; }
+function blockHeadRowHeight_() { return CFG.DENSE_MODE ? THEME.blockHeadRowHeightDense : THEME.blockHeadRowHeight; }
+
+function uiHeaders_() {
+  return CFG.DB_HEADERS.map(h => {
+    if (h === "Баланс") return "💰 Баланс";
+    if (h === "Дата баланса") return "📅 Дата баланса";
+    if (h === "Статус") return "🧾 Статус";
+    if (h === "Статус движения средств") return "🔄 Статус движения средств";
+    return h;
+  });
+}
+
+function logicalHeader_(headerCell) {
+  return String(headerCell || "").replace(/^[^\w\u0400-\u04FF]+\s*/, "").trim();
+}
 
 function isTransientSpreadsheetError_(e) {
   const m = String((e && e.message) ? e.message : e).toLowerCase();
@@ -124,8 +160,33 @@ function onOpen() {
     .addItem("АДМИН: Проставить ID пустым строкам в БД", "adminFillMissingIdsInDB")
     .addItem("АДМИН: Восстановить формат текущего листа", "adminRestoreFormatActiveSheet")
     .addItem("АДМИН: Выгрузить БД → листы (ВСЕ строки)", "adminExportDBToAllManagers")
+    .addSeparator()
+    .addItem("ВИД: Компактный", "adminApplyViewCompact")
+    .addItem("ВИД: Аудит", "adminApplyViewAudit")
+    .addItem("ВИД: Финансы", "adminApplyViewFinance")
     .addToUi();
 }
+
+
+function applyViewPreset_(name) {
+  const ss = SpreadsheetApp.getActive();
+  let widths = CFG.COL_WIDTHS.slice();
+  if (name === "compact") widths = [80, 110, 170, 120, 145, 170, 105, 150, 110, 130, 140, 160, 240, 150, 170, 170, 190, 170];
+  if (name === "audit") widths = [90, 125, 210, 140, 160, 200, 120, 220, 125, 165, 160, 190, 320, 170, 180, 180, 220, 190];
+  if (name === "finance") widths = [90, 115, 170, 120, 145, 170, 110, 160, 130, 150, 155, 165, 240, 200, 210, 210, 230, 200];
+
+  [CFG.DB].concat(CFG.MANAGER_SHEETS).forEach(sheetName => {
+    const sh = ss.getSheetByName(sheetName);
+    if (!sh) return;
+    widths.forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  });
+
+  SpreadsheetApp.getUi().alert(`Готово ✅ Применен вид: ${name}`);
+}
+
+function adminApplyViewCompact() { applyViewPreset_("compact"); }
+function adminApplyViewAudit() { applyViewPreset_("audit"); }
+function adminApplyViewFinance() { applyViewPreset_("finance"); }
 
 function adminBuildSystemModern() { runBuildWithLock_("modern"); }
 function adminBuildSystemLegacy() { runBuildWithLock_("legacy"); }
@@ -208,8 +269,8 @@ function applyTitleRow_(sh) {
     .setFontWeight("normal")
     .setHorizontalAlignment("left")
     .setVerticalAlignment("middle")
-    .setBackground("#f3f4f6")
-    .setFontColor("#6b7280");
+    .setBackground(THEME.titleBg)
+    .setFontColor(THEME.titleFg);
   sh.setRowHeight(1, 26);
 }
 
@@ -223,7 +284,7 @@ function ensureDB_(ss) {
   db.clear();
   removeAllBandings_(db);
   applyTitleRow_(db);
-  db.getRange(layout.headerRow, 1, 1, lastCol).setValues([CFG.DB_HEADERS]);
+  db.getRange(layout.headerRow, 1, 1, lastCol).setValues([uiHeaders_()]);
 
   try { db.setFrozenRows(layout.freezeRows); } catch (e) {}
   try { db.setFrozenColumns(layout.freezeCols); } catch (e) {}
@@ -253,7 +314,7 @@ function buildManagerSheets_(ss) {
     sh.clear();
     removeAllBandings_(sh);
     applyTitleRow_(sh);
-    sh.getRange(layout.headerRow, 1, 1, lastCol).setValues([CFG.DB_HEADERS]);
+    sh.getRange(layout.headerRow, 1, 1, lastCol).setValues([uiHeaders_()]);
 
     try { sh.setFrozenRows(layout.freezeRows); } catch (e) {}
     try { sh.setFrozenColumns(layout.freezeCols); } catch (e) {}
@@ -536,7 +597,7 @@ function setManagerSheetDisplaySafely_(sh, display, lastCol) {
   const maxClear = Math.max(display.length, sh.getLastRow() - (start - 1), 1);
   sh.getRange(start, 1, maxClear, lastCol).clearContent();
   applyTitleRow_(sh);
-  sh.getRange(hdr, 1, 1, lastCol).setValues([CFG.DB_HEADERS]);
+  sh.getRange(hdr, 1, 1, lastCol).setValues([uiHeaders_()]);
   if (display && display.length > 0) sh.getRange(start, 1, display.length, lastCol).setValues(display);
 }
 
@@ -550,6 +611,7 @@ function styleBlocks_(sh, displayRowCount) {
   const colStatus = idx1_("Статус");
 
   const cps = sh.getRange(start, colCp, displayRowCount, 1).getValues();
+  const flows = sh.getRange(start, colFlow, displayRowCount, 1).getValues();
   try { sh.getRange(start, 1, displayRowCount, lastCol).setBorder(false, false, false, false, false, false); } catch (e) {}
 
   for (let i = 0; i < displayRowCount; i++) {
@@ -560,17 +622,19 @@ function styleBlocks_(sh, displayRowCount) {
     if (isBlockHead) {
       if (i > 0) {
         try {
-          sh.getRange(row, 1, 1, lastCol).setBorder(true, true, null, null, null, null, "#94a3b8", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+          sh.getRange(row, 1, 1, lastCol).setBorder(true, true, null, null, null, null, THEME.blockBorder, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
         } catch (e) {}
       }
-      sh.getRange(row, 1, 1, lastCol).setBackground("#eef2f7");
+      const flow = String(flows[i][0] || "").trim();
+      const blockBg = flow === "Новый флоу" ? THEME.blockNewFlowBg : (flow === "Старый флоу" ? THEME.blockOldFlowBg : THEME.blockHeadBg);
+      sh.getRange(row, 1, 1, lastCol).setBackground(blockBg);
       sh.getRange(row, colCp).setFontWeight("bold");
       sh.getRange(row, colFlow).setFontWeight("bold");
       sh.getRange(row, colProject).setFontWeight("bold");
       sh.getRange(row, colStatus).setFontWeight("bold");
-      try { sh.setRowHeight(row, 40); } catch (e) {}
+      try { sh.setRowHeight(row, blockHeadRowHeight_()); } catch (e) {}
     } else {
-      try { sh.setRowHeight(row, 30); } catch (e) {}
+      try { sh.setRowHeight(row, regularRowHeight_()); } catch (e) {}
     }
   }
 }
@@ -650,7 +714,7 @@ function beautifyDB_(db) {
   db.getRange(layout.headerRow, 1, 1, lastCol)
     .setFontFamily("Inter").setFontSize(12).setFontWeight("bold")
     .setHorizontalAlignment("center").setVerticalAlignment("middle")
-    .setBackground("#1f2937").setFontColor("#ffffff").setWrap(true);
+    .setBackground(THEME.headerBg).setFontColor(THEME.headerFg).setWrap(true);
 
   db.getRange(bodyStart, 1, bodyRows, lastCol)
     .setFontFamily("Inter").setFontSize(10).setVerticalAlignment("middle")
@@ -658,7 +722,7 @@ function beautifyDB_(db) {
     .setHorizontalAlignment("center");
 
   db.getRange(bodyStart, idx1_("Ссылка"), bodyRows, 1).setHorizontalAlignment("left").setFontColor("#2563eb").setFontLine("underline");
-  db.getRange(bodyStart, idx1_("Заметка"), bodyRows, 1).setHorizontalAlignment("left").setWrap(true);
+  db.getRange(bodyStart, idx1_("Заметка"), bodyRows, 1).setHorizontalAlignment("left").setWrap(false);
   db.getRange(bodyStart, idx1_("Логин"), bodyRows, 1).setHorizontalAlignment("left");
   db.getRange(bodyStart, idx1_("Пароль"), bodyRows, 1).setHorizontalAlignment("left");
   db.getRange(bodyStart, idx1_("Баланс"), bodyRows, 1).setHorizontalAlignment("right");
@@ -667,11 +731,12 @@ function beautifyDB_(db) {
   db.getRange(bodyStart, idx1_("Поставили на вывод"), bodyRows, 1).setHorizontalAlignment("right");
   db.getRange(bodyStart, idx1_("Статус"), bodyRows, 1).setFontWeight("bold");
 
-  db.getRange(1, 1, maxRows, lastCol).setBorder(true, true, true, true, false, true, "#e5e7eb", SpreadsheetApp.BorderStyle.SOLID);
+  db.getRange(1, 1, maxRows, lastCol).setBorder(true, true, true, true, false, false, "#e5e7eb", SpreadsheetApp.BorderStyle.SOLID);
+  db.getRange(layout.headerRow, 1, 1, lastCol).setBorder(null, null, true, null, null, null, "#334155", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
   db.setRowHeight(layout.headerRow, 46);
   const limit = Math.min(maxRows, CFG.PRETTY_ROWS_LIMIT);
-  for (let r = bodyStart; r <= limit; r++) db.setRowHeight(r, 30);
+  for (let r = bodyStart; r <= limit; r++) db.setRowHeight(r, regularRowHeight_());
 
   applyDBConditionalFormatting_(db);
 }
@@ -682,14 +747,17 @@ function applyDBConditionalFormatting_(db) {
   const numRows = Math.max(1, db.getMaxRows() - (startRow - 1));
   const lastCol = CFG.DB_HEADERS.length;
   const idxStatus = idx1_("Статус");
+  const idxBalDate = idx1_("Дата баланса");
   const colLetter = columnToLetter_(idxStatus);
+  const balDateLetter = columnToLetter_(idxBalDate);
 
   const fullRange = db.getRange(startRow, 1, numRows, lastCol);
   const statusRange = db.getRange(startRow, idxStatus, numRows, 1);
   const r0 = startRow;
   const rules = [];
 
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground("#fbfdff").setRanges([fullRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground(THEME.zebraBg).setRanges([fullRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${balDateLetter}${r0}<>"",TODAY()-INT($${balDateLetter}${r0})>3)`).setBackground("#fff7ed").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⛔ Заблокировано")`).setBackground("#fef2f2").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⚠ Проблема")`).setBackground("#fff7ed").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="◐ Пауза")`).setBackground("#f5f3ff").setRanges([fullRange]).build());
@@ -716,7 +784,7 @@ function applyManagerSheetFormatting_(sh) {
   sh.getRange(layout.headerRow, 1, 1, lastCol)
     .setFontFamily("Inter").setFontSize(12).setFontWeight("bold")
     .setHorizontalAlignment("center").setVerticalAlignment("middle")
-    .setBackground("#1f2937").setFontColor("#ffffff").setWrap(true);
+    .setBackground(THEME.headerBg).setFontColor(THEME.headerFg).setWrap(true);
 
   if (lastRow >= layout.startRow) {
     const bodyRows = lastRow - layout.startRow + 1;
@@ -728,16 +796,17 @@ function applyManagerSheetFormatting_(sh) {
     sh.getRange(layout.startRow, idx1_("Логин"), bodyRows, 1).setHorizontalAlignment("left");
     sh.getRange(layout.startRow, idx1_("Пароль"), bodyRows, 1).setHorizontalAlignment("left");
     sh.getRange(layout.startRow, idx1_("Ссылка"), bodyRows, 1).setHorizontalAlignment("left").setFontColor("#2563eb").setFontLine("underline");
-    sh.getRange(layout.startRow, idx1_("Заметка"), bodyRows, 1).setHorizontalAlignment("left").setWrap(true);
+    sh.getRange(layout.startRow, idx1_("Заметка"), bodyRows, 1).setHorizontalAlignment("left").setWrap(false);
     sh.getRange(layout.startRow, idx1_("Оценка контрагента"), bodyRows, 1).setFontSize(12);
     sh.getRange(layout.startRow, idx1_("Баланс"), bodyRows, 1).setHorizontalAlignment("right");
   }
 
-  sh.getRange(1, 1, lastRow, lastCol).setBorder(true, true, true, true, false, true, "#e5e7eb", SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange(1, 1, lastRow, lastCol).setBorder(true, true, true, true, false, false, "#e5e7eb", SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange(layout.headerRow, 1, 1, lastCol).setBorder(null, null, true, null, null, null, "#334155", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sh.setRowHeight(layout.headerRow, 44);
 
   const limit = Math.min(Math.max(lastRow, layout.startRow), CFG.PRETTY_ROWS_LIMIT);
-  for (let r = layout.startRow; r <= limit; r++) sh.setRowHeight(r, 30);
+  for (let r = layout.startRow; r <= limit; r++) sh.setRowHeight(r, regularRowHeight_());
 }
 
 function applyStatusConditionalFormatting_(sh) {
@@ -748,13 +817,16 @@ function applyStatusConditionalFormatting_(sh) {
   if (numRows <= 0) return;
 
   const idxStatus = idx1_("Статус");
+  const idxBalDate = idx1_("Дата баланса");
   const fullRange = sh.getRange(startRow, 1, numRows, CFG.DB_HEADERS.length);
   const statusRange = sh.getRange(startRow, idxStatus, numRows, 1);
   const colLetter = columnToLetter_(idxStatus);
+  const balDateLetter = columnToLetter_(idxBalDate);
   const r0 = startRow;
 
   const rules = [];
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground("#fbfdff").setRanges([fullRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground(THEME.zebraBg).setRanges([fullRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${balDateLetter}${r0}<>"",TODAY()-INT($${balDateLetter}${r0})>3)`).setBackground("#fff7ed").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⛔ Заблокировано")`).setBackground("#fef2f2").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⚠ Проблема")`).setBackground("#fff7ed").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="◐ Пауза")`).setBackground("#f5f3ff").setRanges([fullRange]).build());
@@ -819,7 +891,7 @@ function protectIdColumns_() {
     const sh = ss.getSheetByName(sheetName);
     if (!sh) return;
 
-    const headers = sh.getRange(layout.headerRow, 1, 1, lastCol).getValues()[0];
+    const headers = sh.getRange(layout.headerRow, 1, 1, lastCol).getValues()[0].map(logicalHeader_);
     const idCol0 = headers.indexOf("ID");
     if (idCol0 === -1) return;
     const col = idCol0 + 1;
@@ -841,6 +913,38 @@ function protectIdColumns_() {
   });
 
   SpreadsheetApp.getUi().alert("Готово ✅ Колонка ID защищена (только тело таблицы).");
+}
+
+
+function onSelectionChange(e) {
+  if (!e || !e.range) return;
+  const sh = e.range.getSheet();
+  if (!CFG.MANAGER_SHEETS.includes(sh.getName())) return;
+  const row = e.range.getRow();
+  if (row < startRow_()) return;
+
+  const cpCol = idx1_("Контрагент");
+  const lastRow = sh.getLastRow();
+  if (lastRow < startRow_()) return;
+
+  let head = row;
+  while (head >= startRow_()) {
+    const cp = String(sh.getRange(head, cpCol).getValue() || "").trim();
+    if (cp) break;
+    head--;
+  }
+  if (head < startRow_()) return;
+
+  let tail = head;
+  for (let r = head + 1; r <= lastRow; r++) {
+    const cp = String(sh.getRange(r, cpCol).getValue() || "").trim();
+    if (cp) break;
+    tail = r;
+  }
+
+  try {
+    sh.getRange(head, 1, tail - head + 1, CFG.DB_HEADERS.length).setBorder(null, null, null, true, null, null, "#60a5fa", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  } catch (err) {}
 }
 
 function onEdit(e) {
