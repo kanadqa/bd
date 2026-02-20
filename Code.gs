@@ -41,14 +41,14 @@ const CFG = {
   BALANCE_DATETIME_FORMAT: "dd.MM.yyyy HH:mm:ss",
 
   // ID, менеджер, контрагент, флоу, проект, логин, пароль, ссылка, баланс, дата, статус, рейтинг, заметка, 3 money, статус money, updated
-  COL_WIDTHS: [90, 125, 190, 130, 160, 190, 135, 190, 120, 145, 150, 175, 300, 170, 180, 180, 210, 180],
+  COL_WIDTHS: [90, 125, 190, 130, 160, 190, 115, 170, 120, 145, 150, 175, 270, 165, 180, 180, 210, 180],
 
   TS_MUTE_SECONDS: 120
 };
 
 const LAYOUTS = {
-  modern: { mode: "modern", useTitle: true, titleRow: 1, headerRow: 2, startRow: 3, freezeRows: 2, freezeCols: 5 },
-  legacy: { mode: "legacy", useTitle: false, titleRow: null, headerRow: 1, startRow: 2, freezeRows: 1, freezeCols: 5 }
+  modern: { mode: "modern", useTitle: true, titleRow: 1, headerRow: 2, startRow: 3, freezeRows: 2, freezeCols: 6 },
+  legacy: { mode: "legacy", useTitle: false, titleRow: null, headerRow: 1, startRow: 2, freezeRows: 1, freezeCols: 6 }
 };
 
 const LAYOUT_PROP_KEY = "SYS_LAYOUT_MODE";
@@ -560,7 +560,7 @@ function styleBlocks_(sh, displayRowCount) {
     if (isBlockHead) {
       if (i > 0) {
         try {
-          sh.getRange(row, 1, 1, lastCol).setBorder(true, null, null, null, null, null, "#9ca3af", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+          sh.getRange(row, 1, 1, lastCol).setBorder(true, true, null, null, null, null, "#94a3b8", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
         } catch (e) {}
       }
       sh.getRange(row, 1, 1, lastCol).setBackground("#eef2f7");
@@ -568,9 +568,9 @@ function styleBlocks_(sh, displayRowCount) {
       sh.getRange(row, colFlow).setFontWeight("bold");
       sh.getRange(row, colProject).setFontWeight("bold");
       sh.getRange(row, colStatus).setFontWeight("bold");
-      try { sh.setRowHeight(row, 38); } catch (e) {}
+      try { sh.setRowHeight(row, 40); } catch (e) {}
     } else {
-      try { sh.setRowHeight(row, 32); } catch (e) {}
+      try { sh.setRowHeight(row, 30); } catch (e) {}
     }
   }
 }
@@ -650,7 +650,7 @@ function beautifyDB_(db) {
   db.getRange(layout.headerRow, 1, 1, lastCol)
     .setFontFamily("Inter").setFontSize(12).setFontWeight("bold")
     .setHorizontalAlignment("center").setVerticalAlignment("middle")
-    .setBackground("#0f172a").setFontColor("#ffffff").setWrap(true);
+    .setBackground("#1f2937").setFontColor("#ffffff").setWrap(true);
 
   db.getRange(bodyStart, 1, bodyRows, lastCol)
     .setFontFamily("Inter").setFontSize(10).setVerticalAlignment("middle")
@@ -689,17 +689,17 @@ function applyDBConditionalFormatting_(db) {
   const r0 = startRow;
   const rules = [];
 
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground("#f8fafc").setRanges([fullRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground("#fbfdff").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⛔ Заблокировано")`).setBackground("#fef2f2").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⚠ Проблема")`).setBackground("#fff7ed").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="◐ Пауза")`).setBackground("#f5f3ff").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="○ Закрыто")`).setBackground("#f3f4f6").setRanges([fullRange]).build());
 
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("● Активно").setBackground("#ecfdf5").setFontColor("#065f46").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("◐ Пауза").setBackground("#eef2ff").setFontColor("#3730a3").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⛔ Заблокировано").setBackground("#fee2e2").setFontColor("#991b1b").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⚠ Проблема").setBackground("#fff7ed").setFontColor("#9a3412").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("○ Закрыто").setBackground("#f3f4f6").setFontColor("#374151").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("● Активно").setBackground("#f0fdf4").setFontColor("#166534").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("◐ Пауза").setBackground("#f5f3ff").setFontColor("#5b21b6").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⛔ Заблокировано").setBackground("#fef2f2").setFontColor("#b91c1c").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⚠ Проблема").setBackground("#fffbeb").setFontColor("#b45309").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("○ Закрыто").setBackground("#f9fafb").setFontColor("#4b5563").setRanges([statusRange]).build());
 
   db.setConditionalFormatRules(rules);
 }
@@ -716,7 +716,7 @@ function applyManagerSheetFormatting_(sh) {
   sh.getRange(layout.headerRow, 1, 1, lastCol)
     .setFontFamily("Inter").setFontSize(12).setFontWeight("bold")
     .setHorizontalAlignment("center").setVerticalAlignment("middle")
-    .setBackground("#111827").setFontColor("#ffffff").setWrap(true);
+    .setBackground("#1f2937").setFontColor("#ffffff").setWrap(true);
 
   if (lastRow >= layout.startRow) {
     const bodyRows = lastRow - layout.startRow + 1;
@@ -737,7 +737,7 @@ function applyManagerSheetFormatting_(sh) {
   sh.setRowHeight(layout.headerRow, 44);
 
   const limit = Math.min(Math.max(lastRow, layout.startRow), CFG.PRETTY_ROWS_LIMIT);
-  for (let r = layout.startRow; r <= limit; r++) sh.setRowHeight(r, 32);
+  for (let r = layout.startRow; r <= limit; r++) sh.setRowHeight(r, 30);
 }
 
 function applyStatusConditionalFormatting_(sh) {
@@ -754,17 +754,17 @@ function applyStatusConditionalFormatting_(sh) {
   const r0 = startRow;
 
   const rules = [];
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground("#f8fafc").setRanges([fullRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",ISEVEN(ROW()))`).setBackground("#fbfdff").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⛔ Заблокировано")`).setBackground("#fef2f2").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="⚠ Проблема")`).setBackground("#fff7ed").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="◐ Пауза")`).setBackground("#f5f3ff").setRanges([fullRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND($A${r0}<>"",$${colLetter}${r0}="○ Закрыто")`).setBackground("#f3f4f6").setRanges([fullRange]).build());
 
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("● Активно").setBackground("#ecfdf5").setFontColor("#065f46").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("◐ Пауза").setBackground("#eef2ff").setFontColor("#3730a3").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⛔ Заблокировано").setBackground("#fee2e2").setFontColor("#991b1b").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⚠ Проблема").setBackground("#fff7ed").setFontColor("#9a3412").setRanges([statusRange]).build());
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("○ Закрыто").setBackground("#f3f4f6").setFontColor("#374151").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("● Активно").setBackground("#f0fdf4").setFontColor("#166534").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("◐ Пауза").setBackground("#f5f3ff").setFontColor("#5b21b6").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⛔ Заблокировано").setBackground("#fef2f2").setFontColor("#b91c1c").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("⚠ Проблема").setBackground("#fffbeb").setFontColor("#b45309").setRanges([statusRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("○ Закрыто").setBackground("#f9fafb").setFontColor("#4b5563").setRanges([statusRange]).build());
 
   sh.setConditionalFormatRules(rules);
 }
